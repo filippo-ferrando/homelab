@@ -1,0 +1,42 @@
+services:
+  bytestash:
+    image: "ghcr.io/jordan-dalby/bytestash:latest"
+    volumes:
+      - /opt/swarm_config/bytestash:/data/snippets
+    networks:
+      - traefik-net
+    environment:
+      BASE_PATH: ""
+      JWT_SECRET_FILE: /run/secrets/bytestash_jwt
+      TOKEN_EXPIRY: 24h
+      ALLOW_NEW_ACCOUNTS: "false"
+      DEBUG: "false"
+      DISABLE_ACCOUNTS: "false"
+      DISABLE_INTERNAL_ACCOUNTS: "false"
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 1G
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.bytestash.rule=Host(`paste.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.bytestash.entrypoints=websecure"
+        - "traefik.http.routers.bytestash.tls.certresolver=mydns"
+        - "traefik.http.services.bytestash.loadbalancer.server.port=5000"
+networks:
+  traefik-net:
+    external: true
+
+secrets:
+  bytestash_jwt:
+    external: true

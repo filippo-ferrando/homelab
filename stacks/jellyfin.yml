@@ -1,0 +1,44 @@
+services:
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/Rome
+    volumes:
+      - /opt/swarm_config/jellyfin/:/config
+      - /mnt/media/TV/Serie/:/data/tvshows
+      - /mnt/media/TV/Film/:/data/movies
+    networks:
+      - traefik-net
+    ports:
+      - 8097:8096
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 8G
+          cpus: "8.0"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.jellyfin.entrypoints=websecure"
+        - "traefik.http.routers.jellyfin.tls.certresolver=mydns"
+        - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+
+        - "traefik.http.middlewares.jellyfin-buffering.buffering.maxRequestBodyBytes=0"
+        - "traefik.http.middlewares.site-compress.compress=true"
+        - "traefik.http.routers.jellyfin.middlewares=jellyfin-buffering,site-compress"
+
+networks:
+  traefik-net:
+    external: true

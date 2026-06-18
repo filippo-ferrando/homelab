@@ -1,0 +1,122 @@
+services:
+  traefik:
+    image: traefik:v3.7
+    command:
+      - "--log.level=INFO"
+
+      - "--providers.swarm=true"
+      - "--providers.swarm.network=traefik-net"
+      - "--providers.docker=false"
+      - "--providers.swarm.exposedbydefault=false"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--providers.file.watch=true"
+
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.websecure.http3"
+      - "--entrypoints.websecure.http3.advertisedPort=443"
+      - "--entrypoints.ssh.address=:2222"
+
+      - "--certificatesresolvers.mydns.acme.email=ferrandodfilippo@gmail.com"
+      - "--certificatesresolvers.mydns.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.mydns.acme.dnsChallenge=true"
+      - "--certificatesresolvers.mydns.acme.dnsChallenge.provider=dynu"
+      - "--certificatesresolvers.mydns.acme.dnsChallenge.resolvers=192.168.10.1:53"
+      - "--certificatesresolvers.mydns.acme.dnsChallenge.delaybeforecheck=0"
+
+      - "--serverstransport.insecureskipverify=true"
+
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+
+    ports:
+      - "80:80"
+      - "443:443/tcp"
+      - "443:443/udp"
+      - "2222:2222"
+
+    environment:
+      - DYNU_API_KEY_FILE=/run/secrets/dynu_api_key
+
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/opt/swarm_config/traefik/letsencrypt:/letsencrypt"
+      - "/opt/swarm_config/traefik:/etc/traefik"
+
+    networks:
+      - traefik-net
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 4G
+          cpus: "4.0"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+        - "traefik.http.routers.traefik-dashboard.tls.certresolver=mydns"
+        - "traefik.http.routers.traefik-dashboard.service=api@internal"
+        - "traefik.http.routers.traefik-dashboard.middlewares=dashboard-auth"
+        - "traefik.http.services.traefik-dashboard.loadbalancer.server.port=8080"
+
+  traefik-manager:
+    image: ghcr.io/chr0nzz/traefik-manager:latest
+    environment:
+      - COOKIE_SECURE=false
+    volumes:
+      - /opt/swarm_config/traefik/dynamic.yml:/app/config/dynamic.yml
+      - /opt/swarm_config/traefik-manager/backups:/app/backups
+      - /opt/swarm_config/traefik-manager/config:/app/config
+      - /opt/swarm_config/traefik/letsencrypt/acme.json:/app/acme.json:ro
+    networks:
+      - traefik-net
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.traefik-manager.rule=Host(`traefik-mgr.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.traefik-manager.entrypoints=websecure"
+        - "traefik.http.routers.traefik-manager.tls.certresolver=mydns"
+        - "traefik.http.services.traefik-manager.loadbalancer.server.port=5000"
+
+networks:
+  traefik-net:
+    external: true
+
+secrets:
+  dynu_api_key:
+    external: true
+    name: traefik_dynu_api_key

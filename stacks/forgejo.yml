@@ -1,0 +1,42 @@
+services:
+  server:
+    image: codeberg.org/forgejo/forgejo:15
+    networks:
+      - traefik-net
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - TZ=Europe/Rome
+    restart: unless-stopped
+    volumes:
+      - /mnt/vault/git:/data
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.forgejo.rule=Host(`git.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.forgejo.entrypoints=websecure"
+        - "traefik.http.routers.forgejo.tls.certresolver=mydns"
+        - "traefik.http.services.forgejo.loadbalancer.server.port=3000"
+
+        - "traefik.tcp.routers.forgejo-ssh.entrypoints=ssh"
+        - "traefik.tcp.routers.forgejo-ssh.rule=HostSNI(`*`)"
+        - "traefik.tcp.routers.forgejo-ssh.service=forgejo-ssh"
+        - "traefik.tcp.services.forgejo-ssh.loadbalancer.server.port=22"
+
+networks:
+  traefik-net:
+    external: true

@@ -1,0 +1,34 @@
+services:
+  copyparty:
+    image: copyparty/ac
+    user: "1000:1000"
+    volumes:
+      - /mnt/vault/data/Filippo:/w
+      - /opt/swarm_config/copyparty/cfgdir:/cfg
+    networks:
+      - traefik-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 5G
+          cpus: "2.0"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.cpfiles.rule=Host(`files.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.cpfiles.entrypoints=websecure"
+        - "traefik.http.routers.cpfiles.tls.certresolver=mydns"
+        - "traefik.http.services.cpfiles.loadbalancer.server.port=3923"
+
+networks:
+  traefik-net:
+    external: true

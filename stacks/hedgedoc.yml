@@ -1,0 +1,81 @@
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_USER=hedgedoc
+      - POSTGRES_PASSWORD=hedgedoc
+      - POSTGRES_DB=hedgedoc
+    volumes:
+      - /opt/swarm_config/hedgedoc/db:/var/lib/postgresql/data
+    networks:
+      - internal
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+
+  app:
+    image: quay.io/hedgedoc/hedgedoc:latest
+    environment:
+      - CMD_DB_URL=postgres://hedgedoc:hedgedoc@database:5432/hedgedoc
+      - CMD_DOMAIN=doc.rdfilippo.mywire.org
+      - CMD_PROTOCOL_USESSL=true
+      - CMD_URL_ADDPORT=false
+      - NODE_ENV=production
+      - CMD_ALLOW_ANONYMOUS=false
+      - CMD_ALLOW_ANONYMOUS_EDITS=true
+      - CMD_DEFAULT_PERMISSION=private
+      - CMD_ALLOW_EMAIL_REGISTER=true
+      - CMD_ALLOW_GRAVATAR=true
+      # Session secret — generate with: openssl rand -hex 32
+      - CMD_SESSION_SECRET_FILE=/run/secrets/session_secret
+    volumes:
+      - /opt/swarm_config/hedgedoc/data:/hedgedoc/public/uploads
+    networks:
+      - internal
+      - traefik-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.hedgedoc.rule=Host(`doc.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.hedgedoc.entrypoints=websecure"
+        - "traefik.http.routers.hedgedoc.tls=true"
+        - "traefik.http.routers.hedgedoc.tls.certresolver=mydns"
+        - "traefik.http.services.hedgedoc.loadbalancer.server.port=3000"
+
+networks:
+  internal:
+    driver: overlay
+    internal: true
+  traefik-net:
+    external: true
+
+secrets:
+  session_secret:
+    external: true
+    name: hedgedoc_session_secret

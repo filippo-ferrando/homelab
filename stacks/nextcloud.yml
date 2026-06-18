@@ -1,0 +1,158 @@
+services:
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Rome
+      - POSTGRES_HOST=nextcloud-db
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=nextcloud_password
+      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.rdfilippo.mywire.org
+      - TRUSTED_PROXIES=traefik-net
+      - OVERWRITEHOST=nextcloud.rdfilippo.mywire.org
+      - OVERWRITEPROTO=https
+    volumes:
+      - /opt/swarm_config/nextcloud/config:/config
+      - /mnt/vault/data/nc-home:/data
+      - /mnt/vault/data/Filippo:/opt/filippo
+      - /mnt/vault/data/Famiglia:/opt/famiglia
+      - /mnt/media:/opt/tv
+    networks:
+      - traefik-net
+      - nextcloud-internal
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.labels.nextcloud == true]
+        preferences:
+          - spread: node.id
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 8G
+          cpus: "8.0"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.nextcloud.rule=Host(`nextcloud.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.nextcloud.entrypoints=websecure"
+        - "traefik.http.routers.nextcloud.tls.certresolver=mydns"
+        - "traefik.http.routers.nextcloud.middlewares=nextcloud-headers,site-compress"
+        - "traefik.http.middlewares.site-compress.compress=true"
+        - "traefik.http.middlewares.nextcloud-headers.headers.referrerPolicy=same-origin"
+        - "traefik.http.middlewares.nextcloud-headers.headers.stsSeconds=15552000"
+        - "traefik.http.middlewares.nextcloud-headers.headers.forceSTSHeader=true"
+        - "traefik.http.middlewares.nextcloud-dav.replacepathregex.regex=^/.well-known/(card|cal)dav"
+        - "traefik.http.middlewares.nextcloud-dav.replacepathregex.replacement=/remote.php/dav/"
+        - "traefik.http.services.nextcloud.loadbalancer.server.port=443"
+        - "traefik.http.services.nextcloud.loadbalancer.server.scheme=https"
+
+  nextcloud-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=nextcloud_password
+    volumes:
+      - /opt/swarm_config/nextcloud/db:/var/lib/postgresql/data
+    networks:
+      - nextcloud-internal
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.labels.nextcloud == true]
+        preferences:
+          - spread: node.id
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 4G
+          cpus: "4.0"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+
+  redis:
+    image: "redis:alpine"
+    networks:
+      - nextcloud-internal
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.labels.nextcloud == true]
+        preferences:
+          - spread: node.id
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+
+  collabora:
+    image: collabora/code
+    environment:
+      - DONT_GEN_SSL_CERT=yes
+      - domain=cloud\.rdfilippo\.mywire\.org
+      - dictionaries=en_US es_ES nl_NL it_IT
+      - extra_params=--o:ssl.enable=false --o:ssl.termination=true
+    networks:
+      - traefik-net
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.collabora.rule=Host(`collabora.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.collabora.entrypoints=websecure"
+        - "traefik.http.routers.collabora.tls.certresolver=mydns"
+        - "traefik.http.services.collabora.loadbalancer.server.port=9980"
+
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints: [node.labels.nextcloud == true]
+        preferences:
+          - spread: node.id
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+
+networks:
+  traefik-net:
+    external: true
+  nextcloud-internal:
+    driver: overlay
+    internal: true

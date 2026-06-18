@@ -1,0 +1,41 @@
+services:
+  streaming:
+    image: ghcr.io/astraelabs/vibravid:v1.3.0
+    volumes:
+      - /mnt/media/TV/Film:/app/Video/Movie
+      - /mnt/media/TV/Serie:/app/Video/Serie
+      - /opt/swarm_config/vibravid:/app/Conf:rw
+    dns:
+      - "1.1.1.1"
+    ports:
+      - 8000:8000
+    networks:
+      - traefik-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+      placement:
+        constraints:
+          - node.role == worker
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.vibravid.rule=Host(`media.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.vibravid.entrypoints=websecure"
+        - "traefik.http.routers.vibravid.tls.certresolver=mydns"
+        - "traefik.http.services.vibravid.loadbalancer.server.port=8000"
+
+networks:
+  traefik-net:
+    external: true
