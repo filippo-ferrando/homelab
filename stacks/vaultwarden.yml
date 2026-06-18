@@ -9,6 +9,8 @@ services:
       - WEBSOCKET_ENABLED=true
       - SIGNUPS_ALLOWED=true
       - DOMAIN=https://vault.rdfilippo.mywire.org
+    secrets:
+      - vw_admin_token
     networks:
       - traefik-net
     deploy:

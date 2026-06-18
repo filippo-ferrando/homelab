@@ -36,6 +36,9 @@ services:
       - "443:443/udp"
       - "2222:2222"
 
+    secrets:
+      - dynu_api_key
+
     environment:
       - DYNU_API_KEY_FILE=/run/secrets/dynu_api_key
 

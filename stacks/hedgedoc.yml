@@ -27,6 +27,8 @@ services:
 
   app:
     image: quay.io/hedgedoc/hedgedoc:latest
+    secrets:
+      - session_secret
     environment:
       - CMD_DB_URL=postgres://hedgedoc:hedgedoc@database:5432/hedgedoc
       - CMD_DOMAIN=doc.rdfilippo.mywire.org
