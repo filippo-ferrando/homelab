@@ -22,12 +22,12 @@ services:
         parallelism: 1
         delay: 10s
         order: start-first
-        labels:
-          - "traefik.enable=true"
-          - "traefik.http.routers.handbrake.rule=Host(`handbrake.rdfilippo.mywire.org`)"
-          - "traefik.http.routers.handbrake.entrypoints=websecure"
-          - "traefik.http.routers.handbrake.tls.certresolver=mydns"
-          - "traefik.http.services.handbrake.loadbalancer.server.port=5800"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.handbrake.rule=Host(`handbrake.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.handbrake.entrypoints=websecure"
+        - "traefik.http.routers.handbrake.tls.certresolver=mydns"
+        - "traefik.http.services.handbrake.loadbalancer.server.port=5800"
 networks:
   traefik-net:
     external: true
