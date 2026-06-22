@@ -37,6 +37,9 @@ services:
         - "traefik.tcp.routers.forgejo-ssh.service=forgejo-ssh"
         - "traefik.tcp.services.forgejo-ssh.loadbalancer.server.port=22"
 
+        - "traefik.http.routers.forgejo-cf.rule=Host(`git.fferrando.cc`)"
+        - "traefik.http.routers.forgejo-cf.entrypoints=cf-public"
+
 networks:
   traefik-net:
     external: true

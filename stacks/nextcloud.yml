@@ -9,9 +9,9 @@ services:
       - POSTGRES_DB=nextcloud
       - POSTGRES_USER=nextcloud
       - POSTGRES_PASSWORD=nextcloud_password
-      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.rdfilippo.mywire.org
+      - NEXTCLOUD_TRUSTED_DOMAINS=nextcloud.rdfilippo.mywire.org files.fferrando.cc
       - TRUSTED_PROXIES=traefik-net
-      - OVERWRITEHOST=nextcloud.rdfilippo.mywire.org
+      - OVERWRITEHOST=files.fferrando.cc
       - OVERWRITEPROTO=https
     volumes:
       - /opt/swarm_config/nextcloud/config:/config
@@ -56,6 +56,9 @@ services:
         - "traefik.http.middlewares.nextcloud-dav.replacepathregex.replacement=/remote.php/dav/"
         - "traefik.http.services.nextcloud.loadbalancer.server.port=443"
         - "traefik.http.services.nextcloud.loadbalancer.server.scheme=https"
+        - "traefik.http.routers.nextcloud-cf.rule=Host(`files.fferrando.cc`)"
+        - "traefik.http.routers.nextcloud-cf.entrypoints=cf-public"
+        - "traefik.http.routers.nextcloud-cf.middlewares=nextcloud-headers,site-compress"
 
   nextcloud-db:
     image: postgres:15
