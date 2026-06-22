@@ -17,6 +17,7 @@ services:
       - "--entrypoints.websecure.http3"
       - "--entrypoints.websecure.http3.advertisedPort=443"
       - "--entrypoints.ssh.address=:2222"
+      - "--entrypoints.cf-public.address=:9443"
 
       - "--certificatesresolvers.mydns.acme.email=ferrandodfilippo@gmail.com"
       - "--certificatesresolvers.mydns.acme.storage=/letsencrypt/acme.json"
@@ -24,6 +25,12 @@ services:
       - "--certificatesresolvers.mydns.acme.dnsChallenge.provider=dynu"
       - "--certificatesresolvers.mydns.acme.dnsChallenge.resolvers=192.168.10.1:53"
       - "--certificatesresolvers.mydns.acme.dnsChallenge.delaybeforecheck=0"
+
+      - "--certificatesresolvers.cfresolver.acme.email=ferrandodfilippo+cloudflare@ik.me"
+      - "--certificatesresolvers.cfresolver.acme.storage=/letsencrypt/acme-cf.json"
+      - "--certificatesresolvers.cfresolver.acme.dnsChallenge=true"
+      - "--certificatesresolvers.cfresolver.acme.dnsChallenge.provider=cloudflare"
+      - "--certificatesresolvers.cfresolver.acme.dnsChallenge.resolvers=1.1.1.1:53,1.0.0.1:53"
 
       - "--serverstransport.insecureskipverify=true"
 
@@ -38,9 +45,11 @@ services:
 
     secrets:
       - dynu_api_key
+      - cf_api_key
 
     environment:
       - DYNU_API_KEY_FILE=/run/secrets/dynu_api_key
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_api_key
 
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
@@ -123,3 +132,6 @@ secrets:
   dynu_api_key:
     external: true
     name: traefik_dynu_api_key
+  cf_api_key:
+    external: true
+    name: traefik_cf_api_key
