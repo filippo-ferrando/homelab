@@ -31,12 +31,12 @@ services:
       - session_secret
     environment:
       - CMD_DB_URL=postgres://hedgedoc:hedgedoc@database:5432/hedgedoc
-      - CMD_DOMAIN=doc.rdfilippo.mywire.org
+      - CMD_DOMAIN=md.fferrando.cc
       - CMD_PROTOCOL_USESSL=true
       - CMD_URL_ADDPORT=false
       - NODE_ENV=production
       - CMD_ALLOW_ANONYMOUS=false
-      - CMD_ALLOW_ANONYMOUS_EDITS=true
+      - CMD_ALLOW_ANONYMOUS_EDITS=false
       - CMD_DEFAULT_PERMISSION=private
       - CMD_ALLOW_EMAIL_REGISTER=true
       - CMD_ALLOW_GRAVATAR=true
@@ -68,6 +68,10 @@ services:
         - "traefik.http.routers.hedgedoc.entrypoints=websecure"
         - "traefik.http.routers.hedgedoc.tls=true"
         - "traefik.http.routers.hedgedoc.tls.certresolver=mydns"
+
+        - "traefik.http.routers.portfolio-cf.rule=Host(`md.ferrando.cc`)"
+        - "traefik.http.routers.portfolio-cf.entrypoints=cf-public"
+
         - "traefik.http.services.hedgedoc.loadbalancer.server.port=3000"
 
 networks:
