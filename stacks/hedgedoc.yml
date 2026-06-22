@@ -69,8 +69,8 @@ services:
         - "traefik.http.routers.hedgedoc.tls=true"
         - "traefik.http.routers.hedgedoc.tls.certresolver=mydns"
 
-        - "traefik.http.routers.portfolio-cf.rule=Host(`md.ferrando.cc`)"
-        - "traefik.http.routers.portfolio-cf.entrypoints=cf-public"
+        - "traefik.http.routers.hedgedoc-cf.rule=Host(`md.ferrando.cc`)"
+        - "traefik.http.routers.hedgedoc-cf.entrypoints=cf-public"
 
         - "traefik.http.services.hedgedoc.loadbalancer.server.port=3000"
 
