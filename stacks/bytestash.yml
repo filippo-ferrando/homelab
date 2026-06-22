@@ -34,6 +34,8 @@ services:
         - "traefik.http.routers.bytestash.rule=Host(`paste.rdfilippo.mywire.org`)"
         - "traefik.http.routers.bytestash.entrypoints=websecure"
         - "traefik.http.routers.bytestash.tls.certresolver=mydns"
+        - "traefik.http.routers.bytestash-cf.rule=Host(`paste.fferrando.cc`)"
+        - "traefik.http.routers.bytestash-cf.entrypoints=cf-public"
         - "traefik.http.services.bytestash.loadbalancer.server.port=5000"
 networks:
   traefik-net:
