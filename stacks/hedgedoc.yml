@@ -31,7 +31,7 @@ services:
       - session_secret
     environment:
       - CMD_DB_URL=postgres://hedgedoc:hedgedoc@database:5432/hedgedoc
-      - CMD_DOMAIN=md.fferrando.cc
+      - CMD_DOMAIN=doc.fferrando.cc
       - CMD_PROTOCOL_USESSL=true
       - CMD_URL_ADDPORT=false
       - NODE_ENV=production
