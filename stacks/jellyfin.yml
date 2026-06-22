@@ -39,6 +39,10 @@ services:
         - "traefik.http.middlewares.site-compress.compress=true"
         - "traefik.http.routers.jellyfin.middlewares=jellyfin-buffering,site-compress"
 
+        - "traefik.http.routers.jellyfin-cf.rule=Host(`jellyfin.fferrando.cc`)"
+        - "traefik.http.routers.jellyfin-cf.entrypoints=cf-public"
+        - "traefik.http.routers.jellyfin-cf.middlewares=jellyfin-buffering,site-compress"
+
 networks:
   traefik-net:
     external: true
