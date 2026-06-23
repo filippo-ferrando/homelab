@@ -47,7 +47,7 @@ services:
       - internal
     environment:
       - POSTGRES_USER=forgejo
-      - POSTGRES_PASSWORD=changeme
+      - POSTGRES_PASSWORD=forgejo
       - POSTGRES_DB=forgejo
     restart: unless-stopped
     volumes:
