@@ -52,6 +52,7 @@ services:
     restart: unless-stopped
     volumes:
       - /mnt/vault/git/forgejo-db:/var/lib/postgresql/data
+      - /mnt/vault/git/backup:/backup
     deploy:
       replicas: 1
       restart_policy:
