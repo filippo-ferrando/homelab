@@ -1,6 +1,6 @@
 services:
   streaming:
-    image: ghcr.io/astraelabs/vibravid:v1.3.0
+    image: ghcr.io/astraelabs/vibravid:v1.3.1
     volumes:
       - /mnt/media/TV/Film:/app/Video/Movie
       - /mnt/media/TV/Serie:/app/Video/Serie
