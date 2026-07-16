@@ -37,7 +37,7 @@ services:
     image: postgres:15-alpine
     environment:
       - POSTGRES_USER=mautrix
-      - POSTGRES_PASSWORD=YourStrongDatabasePassword
+      - POSTGRES_PASSWORD=mautrix
     volumes:
       - /opt/swarm_config/conduit/db:/var/lib/postgresql/data
     networks:
