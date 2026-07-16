@@ -8,6 +8,8 @@ services:
       - CONDUIT_DATABASE_BACKEND=rocksdb
       - CONDUIT_ALLOW_REGISTRATION=true
       - CONDUIT_PORT=6167
+      - CONDUIT_ADDRESS=0.0.0.0
+      - CONDUIT_LOG=info
       - CONDUIT_CONFIG=""
       - CONDUIT_DATABASE_PATH=/var/lib/matrix-conduit
     volumes:
@@ -31,8 +33,8 @@ services:
         - "traefik.http.routers.conduit.entrypoints=cf-public"
         - "traefik.http.routers.conduit.rule=Host(`matrix.fferrando.cc`)"
         - "traefik.http.services.conduit.loadbalancer.server.port=6167"
-        - "traefik.http.routers.hedgedoc.tls=true"
-        - "traefik.http.routers.hedgedoc.tls.certresolver=mydns"
+        - "traefik.http.routers.conduit.tls=true"
+        - "traefik.http.routers.conduit.tls.certresolver=mydns"
 
   tg-db:
     image: postgres:15-alpine
