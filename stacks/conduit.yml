@@ -7,6 +7,7 @@ services:
       - CONDUIT_SERVER_NAME=matrix.fferrando.cc
       - CONDUIT_DATABASE_BACKEND=rocksdb
       - CONDUIT_ALLOW_REGISTRATION=false
+      - CONDUIT_ALLOW_FEDERATION=true
       - CONDUIT_PORT=6167
       - CONDUIT_ADDRESS=0.0.0.0
       - CONDUIT_LOG=info
