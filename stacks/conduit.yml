@@ -33,8 +33,6 @@ services:
         - "traefik.http.routers.conduit.entrypoints=cf-public"
         - "traefik.http.routers.conduit.rule=Host(`matrix.fferrando.cc`)"
         - "traefik.http.services.conduit.loadbalancer.server.port=6167"
-        - "traefik.http.routers.conduit.tls=true"
-        - "traefik.http.routers.conduit.tls.certresolver=mydns"
 
   tg-db:
     image: postgres:15-alpine
