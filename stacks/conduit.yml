@@ -8,6 +8,7 @@ services:
       - CONDUIT_DATABASE_BACKEND=rocksdb
       - CONDUIT_ALLOW_REGISTRATION=true
       - CONDUIT_PORT=6167
+      - CONDUIT_CONFIG=""
     volumes:
       - /opt/swarm_config/conduit/conduit:/var/lib/matrix-conduit
     networks:
