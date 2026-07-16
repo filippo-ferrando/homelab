@@ -9,6 +9,7 @@ services:
       - CONDUIT_ALLOW_REGISTRATION=true
       - CONDUIT_PORT=6167
       - CONDUIT_CONFIG=""
+      - CONDUIT_DATABASE_PATH=/var/lib/matrix-conduit
     volumes:
       - /opt/swarm_config/conduit/conduit:/var/lib/matrix-conduit
     networks:
