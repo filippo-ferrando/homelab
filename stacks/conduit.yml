@@ -34,13 +34,34 @@ services:
         - "traefik.http.routers.hedgedoc.tls=true"
         - "traefik.http.routers.hedgedoc.tls.certresolver=mydns"
 
-  bridge-db:
+  tg-db:
     image: postgres:15-alpine
     environment:
       - POSTGRES_USER=mautrix
       - POSTGRES_PASSWORD=mautrix
     volumes:
-      - /opt/swarm_config/conduit/db:/var/lib/postgresql/data
+      - /opt/swarm_config/conduit/tg-db:/var/lib/postgresql/data
+    networks:
+      - matrix-internal
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+
+  wa-db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=mautrix
+      - POSTGRES_PASSWORD=mautrix
+    volumes:
+      - /opt/swarm_config/conduit/wa-db:/var/lib/postgresql/data
     networks:
       - matrix-internal
     deploy:
@@ -62,7 +83,7 @@ services:
     networks:
       - matrix-internal
     depends_on:
-      - bridge-db
+      - wa-db
     deploy:
       replicas: 1
       restart_policy:
@@ -78,7 +99,7 @@ services:
     networks:
       - matrix-internal
     depends_on:
-      - bridge-db
+      - tg-db
     deploy:
       replicas: 1
       restart_policy:
