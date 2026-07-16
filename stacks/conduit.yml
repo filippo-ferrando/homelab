@@ -1,0 +1,92 @@
+version: "3.8"
+
+services:
+  conduit:
+    image: matrixconduit/matrix-conduit:latest
+    environment:
+      - CONDUIT_SERVER_NAME=matrix.fferrando.cc
+      - CONDUIT_DATABASE_BACKEND=rocksdb
+      - CONDUIT_ALLOW_REGISTRATION=true
+      - CONDUIT_PORT=6167
+    volumes:
+      - /opt/swarm_config/conduit/conduit:/var/lib/matrix-conduit
+    networks:
+      - traefik-net
+      - matrix-internal
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.conduit.entrypoints=cf-public"
+        - "traefik.http.routers.conduit.rule=Host(`matrix.fferrando.cc`)"
+        - "traefik.http.services.conduit.loadbalancer.server.port=6167"
+        - "traefik.http.routers.hedgedoc.tls=true"
+        - "traefik.http.routers.hedgedoc.tls.certresolver=mydns"
+
+  bridge-db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=mautrix
+      - POSTGRES_PASSWORD=YourStrongDatabasePassword
+    volumes:
+      - /opt/swarm_config/conduit/db:/var/lib/postgresql/data
+    networks:
+      - matrix-internal
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+
+  mautrix-whatsapp:
+    image: dock.mau.dev/mautrix/whatsapp:latest
+    volumes:
+      - /opt/swarm_config/conduit/whatsapp:/data
+    networks:
+      - matrix-internal
+    depends_on:
+      - bridge-db
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+  mautrix-telegram:
+    image: dock.mau.dev/mautrix/telegram:latest
+    volumes:
+      - /opt/swarm_config/conduit/telegram:/data
+    networks:
+      - matrix-internal
+    depends_on:
+      - bridge-db
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+networks:
+  traefik-net:
+    external: true
+  matrix-internal:
+    driver: overlay
