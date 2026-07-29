@@ -78,6 +78,7 @@ networks:
   internal:
     driver: overlay
     internal: true
+    attachable: true
   traefik-net:
     external: true
 
