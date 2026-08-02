@@ -1,0 +1,3 @@
+- [x] Update db backup script with correct docker information
+- [ ] Update Prometheus config with correct dns records
+- [x] Create distributed PGPool stack for highly available postgres cluster
