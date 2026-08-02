@@ -8,7 +8,12 @@
         remote_path: "/usr/local/bin/borg-backup.sh"
         cron_schedule: "0 2 */2 * *"
         cron_user: "magi"
-        name: "pernsonal data"
+        name: "personal data"
+      - script_path: "../backup/borg_backup_db.sh"
+        remote_path: "/usr/local/bin/db-backup.sh"
+        cron_schedule: "0 4 */3 * *"
+        cron_user: "magi"
+        name: "db data"
   tasks:
     - name: Ensure target directories exist
       ansible.builtin.file:
