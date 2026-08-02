@@ -1,0 +1,42 @@
+services:
+  calibre-web:
+    image: lscr.io/linuxserver/calibre-web:latest
+    networks:
+      - traefik-net
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "Europe/Rome"
+      DOCKER_MODS: linuxserver/mods:universal-calibre
+    volumes:
+      - /opt/swarm_config/calibre:/config
+      - /mnt/vault/data/Filippo/books:/books:rw
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.calibre-web.rule=Host(`books.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.calibre-web.entrypoints=websecure"
+        - "traefik.http.routers.calibre-web.tls=true"
+        - "traefik.http.routers.calibre-web.tls.certresolver=mydns"
+        - "traefik.http.services.calibre-web.loadbalancer.server.port=8083"
+
+networks:
+  traefik-net:
+    external: true

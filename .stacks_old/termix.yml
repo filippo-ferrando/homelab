@@ -1,0 +1,48 @@
+services:
+  termix:
+    image: ghcr.io/lukegus/termix:latest
+    restart: unless-stopped
+    environment:
+      PORT: "8080"
+    volumes:
+      - /opt/swarm_config/termix:/app/data
+    networks:
+      - termix-net
+      - traefik-net
+    depends_on:
+      - guacd
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.termix.rule=Host(`ssh.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.termix.entrypoints=websecure"
+        - "traefik.http.routers.termix.tls.certresolver=mydns"
+        - "traefik.http.services.termix.loadbalancer.server.port=8080"
+        - "traefik.docker.network=traefik-net"
+
+  guacd:
+    image: guacamole/guacd:1.6.0
+    restart: unless-stopped
+    networks:
+      - termix-net
+      - traefik-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.guacd.rule=Host(`guacd.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.guacd.entrypoints=websecure"
+        - "traefik.http.routers.guacd.tls.certresolver=mydns"
+        - "traefik.http.services.guacd.loadbalancer.server.port=4822"
+        - "traefik.docker.network=traefik-net"
+
+networks:
+  termix-net:
+    driver: overlay
+  traefik-net:
+    external: true
