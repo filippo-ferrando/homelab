@@ -1,0 +1,124 @@
+networks:
+  monitoring:
+    driver: overlay
+    attachable: true
+  traefik_net:
+    external: true
+
+volumes:
+  prometheus_data:
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - /opt/swarm_config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    networks:
+      - monitoring
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 1G
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+
+  grafana:
+    image: grafana/grafana:latest
+    depends_on:
+      - prometheus
+    volumes:
+      - /opt/swarm_config/grafana:/var/lib/grafana
+    networks:
+      - monitoring
+      - traefik_net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 1G
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.grafana.rule=Host(`grafana.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.grafana.entrypoints=websecure"
+        - "traefik.http.routers.grafana.tls.certresolver=mydns"
+        - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+        - "traefik.docker.network=traefik_net"
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - monitoring
+    deploy:
+      mode: global
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /var/lib/node_exporter/textfile_collector:/textfile_collector:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.rootfs=/rootfs"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+      - "--collector.textfile.directory=/textfile_collector"
+    networks:
+      - monitoring
+    deploy:
+      mode: global
+
+  pushgateway:
+    image: prom/pushgateway:latest
+    networks:
+      - monitoring
+      - traefik_net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          memory: 1G
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.pushgateway.rule=Host(`pushgateway.rdfilippo.mywire.org`)"
+        - "traefik.http.routers.pushgateway.entrypoints=websecure"
+        - "traefik.http.routers.grafana.tls.certresolver=mydns"
+        - "traefik.http.services.pushgateway.loadbalancer.server.port=9091"
+        - "traefik.docker.network=traefik_net"
