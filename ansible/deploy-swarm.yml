@@ -1,0 +1,124 @@
+---
+- name: Install Docker and Firewalld configuration across all nodes
+  hosts: swarm
+  become: true
+  tasks:
+    - name: Add Docker YUM repository
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+        mode: "0644"
+
+    - name: Install Docker Engine packages
+      ansible.builtin.dnf:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    - name: Enable and start Docker service
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Add user to docker group
+      ansible.builtin.user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: true
+
+    - name: Open Docker Swarm ports in Firewalld (Public Zone)
+      ansible.posix.firewalld:
+        zone: public
+        service: docker-swarm
+        permanent: true
+        immediate: true
+        state: enabled
+      when: ansible_facts.services['firewalld.service'] is defined and
+        ansible_facts.services['firewalld.service'].state == 'running'
+
+- name: Initialize Docker Swarm Primary Manager
+  hosts: managers[0]
+  become: true
+  tasks:
+    - name: Check Swarm status
+      ansible.builtin.command: docker info --format '{{ "{{" }}.Swarm.LocalNodeState{{ "}}" }}'
+      register: swarm_status
+      changed_when: false
+
+    - name: Initialize Swarm Cluster
+      ansible.builtin.command: >
+        docker swarm init
+        --advertise-addr {{ hostvars[inventory_hostname]['ansible_host'] | default(inventory_hostname) }}
+      when: swarm_status.stdout != "active"
+
+    - name: Retrieve Manager Join Token
+      ansible.builtin.command: docker swarm join-token -q manager
+      register: manager_token
+      changed_when: false
+
+    - name: Retrieve Worker Join Token
+      ansible.builtin.command: docker swarm join-token -q worker
+      register: worker_token
+      changed_when: false
+
+    - name: Store tokens as global facts
+      ansible.builtin.set_fact:
+        swarm_manager_token: "{{ manager_token.stdout }}"
+        swarm_worker_token: "{{ worker_token.stdout }}"
+        primary_manager_ip: "{{ hostvars[inventory_hostname]['ansible_host'] | default(inventory_hostname) }}"
+      delegate_to: "{{ item }}"
+      delegate_facts: true
+      loop: "{{ groups['swarm'] }}"
+
+- name: Join Secondary Managers to Swarm
+  hosts: managers[1:]
+  become: true
+  tasks:
+    - name: Check Swarm status
+      ansible.builtin.command: docker info --format '{{ "{{" }}.Swarm.LocalNodeState{{ "}}" }}'
+      register: swarm_status
+      changed_when: false
+
+    - name: Join Swarm as Manager
+      ansible.builtin.command: >
+        docker swarm join
+        --token {{ swarm_manager_token }}
+        --advertise-addr {{ hostvars[inventory_hostname]['ansible_host'] | default(inventory_hostname) }}
+        {{ primary_manager_ip }}:2377
+      when: swarm_status.stdout != "active"
+
+- name: Join Workers to Swarm
+  hosts: workers
+  become: true
+  tasks:
+    - name: Check Swarm status
+      ansible.builtin.command: docker info --format '{{ "{{" }}.Swarm.LocalNodeState{{ "}}" }}'
+      register: swarm_status
+      changed_when: false
+
+    - name: Join Swarm as Worker
+      ansible.builtin.command: >
+        docker swarm join
+        --token {{ swarm_worker_token }}
+        --advertise-addr {{ hostvars[inventory_hostname]['ansible_host'] | default(inventory_hostname) }}
+        {{ primary_manager_ip }}:2377
+      when: swarm_status.stdout != "active"
+
+- name: Apply node labels from inventory
+  hosts: managers[0]
+  become: true
+  tasks:
+    - name: Apply node labels
+      ansible.builtin.command: >
+        docker node update
+        --label-add {{ item.key }}={{ item.value }}
+        {{ hostvars[inventory_hostname]['inventory_hostname'] }}
+      loop: "{{ hostvars[item]['node_labels'] | default({}) | dict2items }}"
+      loop_control:
+        loop_var: item
+      with_items: "{{ groups['swarm'] }}"

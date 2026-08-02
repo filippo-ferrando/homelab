@@ -5,12 +5,9 @@ services:
     volumes:
       - /opt/swarm_config/vaultwarden:/data:rw
     environment:
-      - ADMIN_TOKEN_FILE=/run/secrets/vw_admin_token
       - WEBSOCKET_ENABLED=true
       - SIGNUPS_ALLOWED=true
       - DOMAIN=https://vault.rdfilippo.mywire.org
-    secrets:
-      - vw_admin_token
     networks:
       - traefik-net
     deploy:
@@ -38,8 +35,3 @@ services:
 networks:
   traefik-net:
     external: true
-
-secrets:
-  vw_admin_token:
-    external: true
-    name: vaultwarden_admin_token

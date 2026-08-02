@@ -1,0 +1,101 @@
+---
+- name: Populate /etc/hosts with inventory hostnames and IPs
+  hosts: swarm
+  become: true
+  tasks:
+    - name: Ensure all swarm hosts are present in /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars[item]['ansible_host'] | default(item) }} {{ hostvars[item]['inventory_hostname'] }}"
+        regexp: ".*\\s+{{ hostvars[item]['inventory_hostname'] }}$"
+        state: present
+        create: true
+      loop: "{{ groups['swarm'] }}"
+
+- name: Install Gluster on nodes
+  hosts: cluster
+  become: true
+  vars:
+    gluster_data_brick: "/var/gluster/brick0"
+  tasks:
+    - name: Ensure EPEL repository is installed
+      ansible.builtin.dnf:
+        name: epel-release
+        state: present
+    - name: Install GlusterFS server and client packages
+      ansible.builtin.dnf:
+        name:
+          - glusterfs-server
+          - glusterfs-client
+        state: present
+
+    - name: Open GlusterFS ports in Firewalld (Public Zone)
+      ansible.posix.firewalld:
+        zone: public
+        service: glusterfs
+        permanent: true
+        immediate: true
+        state: enabled
+      when: ansible_facts.services['firewalld.service'] is defined and
+        ansible_facts.services['firewalld.service'].state == 'running'
+
+    - name: Create brick path on root filesystem
+      ansible.builtin.file:
+        path: "{{ gluster_data_brick }}"
+        state: directory
+        mode: "0755"
+
+    - name: Enable and start GlusterFS service
+      ansible.builtin.systemd:
+        name: glusterd
+        state: started
+        enabled: true
+
+- name: Gluster configuration
+  hosts: cluster[0]
+  become: true
+  vars:
+    gluster_volume_name: "gv0"
+    brick_path: "/var/gluster/brick0"
+    peers: "{{ groups['cluster'][1:] }}"
+
+  tasks:
+    - name: Probe GlusterFS peers using inventory hostnames
+      gluster.gluster.gluster_peer:
+        peer: "{{ hostvars[item]['inventory_hostname'] }}"
+        state: present
+      loop: "{{ peers }}"
+
+    - name: Build brick target string list using hostnames
+      ansible.builtin.set_fact:
+        gluster_bricks: "{{ groups['cluster'] | map('extract', hostvars, 'inventory_hostname') | map('regex_replace', '$', ':' + brick_path + '/' + gluster_volume_name) | list }}"
+
+    - name: Create and start Replicated GlusterFS volume
+      gluster.gluster.gluster_volume:
+        state: started
+        name: "{{ gluster_volume_name }}"
+        brick: "{{ gluster_bricks | join(',') }}"
+        replicate: "{{ groups['cluster'] | length }}"
+        force: true
+
+- name: Self-mount GlusterFS volume on all swarm hosts
+  hosts: cluster
+  become: true
+  vars:
+    volume_name: "gv0"
+    mount_point: "/opt/swarm_config"
+
+  tasks:
+    - name: Create local mount point directory
+      ansible.builtin.file:
+        path: "{{ mount_point }}"
+        state: directory
+        mode: "0755"
+
+    - name: Mount GlusterFS volume via localhost in /etc/fstab
+      ansible.posix.mount:
+        path: "{{ mount_point }}"
+        src: "127.0.0.1:/{{ volume_name }}"
+        fstype: glusterfs
+        opts: "defaults,_netdev,backupvolfile-server=localhost,fetch-attempts=3,log-level=WARNING,log-file=/var/log/glusterfs/volname.log"
+        state: mounted
