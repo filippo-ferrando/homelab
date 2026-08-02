@@ -11,11 +11,14 @@ DUMP_DIR="/tmp/db_dump"
 rm -rf "$DUMP_DIR"
 mkdir -p "$DUMP_DIR"
 
+PG_SUPERUSER_PASS="super_secret_root_password"
+DATE_SUFFIX=$(date +%Y%m%d_%H%M%S)
+
 docker run --rm --network db_network \
   -v "${DUMP_DIR}:/dumps" \
-  -e PGPASSWORD="your_db_password" \
+  -e PGPASSWORD="${PG_SUPERUSER_PASS}" \
   postgres:15-alpine \
-  pg_dump -h your_db_container_name -U your_db_user -d your_database -f "/dumps/network_db_${DATE_SUFFIX}.sql"
+  pg_dumpall -h pgpool -U postgres -f "/dumps/cluster_all_dbs_${DATE_SUFFIX}.sql"
 
 NET_DB_EXIT=$?
 
