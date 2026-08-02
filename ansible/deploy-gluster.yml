@@ -99,3 +99,43 @@
         fstype: glusterfs
         opts: "defaults,_netdev,backupvolfile-server=localhost,fetch-attempts=3,log-level=WARNING,log-file=/var/log/glusterfs/volname.log"
         state: mounted
+
+- name: Deploy and Configure gluster-metrics-exporter
+  hosts: cluster
+  become: true
+  vars:
+    kadalu_exporter_port: 9713
+  tasks:
+    - name: Download and execute the install script
+      ansible.builtin.shell:
+        cmd: "curl -fsSL https://github.com/kadalu/gluster-metrics-exporter/releases/latest/download/install.sh | sudo bash -x"
+      args:
+        executable: /bin/bash
+
+    - name: Ensure glusterd config directory exists (for hostname override)
+      ansible.builtin.file:
+        path: /var/lib/glusterd
+        state: directory
+        mode: "0755"
+
+    - name: Set correct hostname for the exporter
+      ansible.builtin.copy:
+        content: "{{ inventory_hostname }}\n"
+        dest: /var/lib/glusterd/hostname
+        mode: "0644"
+
+    - name: Open Kadalu Exporter port in Firewalld (Public Zone)
+      ansible.posix.firewalld:
+        zone: public
+        port: "{{ kadalu_exporter_port }}/tcp"
+        permanent: true
+        immediate: true
+        state: enabled
+      when: ansible_facts.services['firewalld.service'] is defined and
+        ansible_facts.services['firewalld.service'].state == 'running'
+
+    - name: Enable and start gluster-metrics-exporter service
+      ansible.builtin.systemd:
+        name: gluster-metrics-exporter
+        state: started
+        enabled: true
