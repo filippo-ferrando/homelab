@@ -1,3 +1,5 @@
 - [x] Update db backup script with correct docker information
 - [ ] Update Prometheus config with correct dns records
 - [x] Create distributed PGPool stack for highly available postgres cluster
+- [ ] Modify stacks to **not** deploy containers on *magi*
+- [ ] Find solution for pgpool credentials
