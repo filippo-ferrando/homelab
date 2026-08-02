@@ -52,7 +52,7 @@
       # mount only on network machine
       - path: "/mnt/vault"
         allowed_ips:
-          - "102.168.10.100"
+          - "192.168.10.100"
         options: "ro,sync,no_subtree_check,no_root_squash"
 
   tasks:
