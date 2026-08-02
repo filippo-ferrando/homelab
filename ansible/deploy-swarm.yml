@@ -113,12 +113,13 @@
   hosts: managers[0]
   become: true
   tasks:
-    - name: Apply node labels
+    - name: Build combined node/label list
+      ansible.builtin.set_fact:
+        node_labels_combined: "{{ node_labels_combined | default([]) + [{'node': item, 'labels': (hostvars[item]['node_labels'] | default({}) | dict2items)}] }}"
+      loop: "{{ groups['swarm'] }}"
+
+    - name: Apply node labels to each node in Swarm
       ansible.builtin.command: >
-        docker node update
-        --label-add {{ item.key }}={{ item.value }}
-        {{ hostvars[inventory_hostname]['inventory_hostname'] }}
-      loop: "{{ hostvars[item]['node_labels'] | default({}) | dict2items }}"
-      loop_control:
-        loop_var: item
-      with_items: "{{ groups['swarm'] }}"
+        docker node update --label-add {{ item.1.key }}={{ item.1.value }} {{ item.0.node }}
+      loop: "{{ node_labels_combined | subelements('labels') }}"
+      changed_when: true
