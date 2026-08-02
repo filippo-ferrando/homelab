@@ -1,0 +1,38 @@
+---
+- name: Deploy SMART monitoring script for Node Exporter
+  hosts: swarm
+  become: true
+
+  vars:
+    textfile_dir: "/var/lib/node_exporter/textfile_collector"
+    script_path: "/usr/local/bin/smartmon.sh"
+    script_url: "https://raw.githubusercontent.com/prometheus-community/node-exporter-textfile-collector-scripts/master/smartmon.sh"
+
+  tasks:
+    - name: Ensure smartmontools is installed (Required for smartmon.sh to read disk health)
+      ansible.builtin.package:
+        name: smartmontools
+        state: present
+
+    - name: 1. Create the textfile collector directory
+      ansible.builtin.file:
+        path: "{{ textfile_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: 2. Download smartmon.sh and make it executable
+      ansible.builtin.get_url:
+        url: "{{ script_url }}"
+        dest: "{{ script_path }}"
+        owner: root
+        group: root
+        mode: "0755" # This makes the script executable
+
+    - name: 3. Add root cron job for smartmon.sh (with atomic write)
+      ansible.builtin.cron:
+        name: "Node Exporter SMART metrics"
+        user: "root"
+        minute: "*"
+        job: "{{ script_path }} > {{ textfile_dir }}/smartmon.prom.tmp && mv {{ textfile_dir }}/smartmon.prom.tmp {{ textfile_dir }}/smartmon.prom"
