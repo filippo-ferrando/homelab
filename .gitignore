@@ -1,1 +1,4 @@
-**/.env
+**/*.env
+**.iso
+**.img
+**.qcow2

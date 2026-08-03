@@ -1,0 +1,101 @@
+<domain type='kvm'>
+  <name>router</name>
+  <metadata xmlns:libosinfo="http://libosinfo.org/xmlns/libvirt/domain/1.0" xmlns:cockpit_machines="https://github.com/cockpit-project/cockpit-machines">
+    <libosinfo:libosinfo>
+      <libosinfo:os id="http://freebsd.org/freebsd/14.0"/>
+    </libosinfo:libosinfo>
+  </metadata>
+  <memory unit='KiB'>4142880</memory>
+  <currentMemory unit='KiB'>4142880</currentMemory>
+  <memtune>
+    <hard_limit unit='KiB'>4832960</hard_limit>
+    <soft_limit unit='KiB'>4618592</soft_limit>
+  </memtune>
+  <vcpu placement='static'>4</vcpu>
+  <os>
+    <type arch='x86_64' machine='pc-i440fx-rhel10.0.0'>hvm</type>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+  </features>
+  <cpu mode='host-passthrough' check='none' migratable='on'>
+    <topology sockets='1' dies='1' clusters='1' cores='2' threads='2'/>
+  </cpu>
+  <clock offset='utc'>
+    <timer name='rtc' tickpolicy='catchup'/>
+    <timer name='pit' tickpolicy='delay'/>
+    <timer name='hpet' present='no'/>
+  </clock>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <pm>
+    <suspend-to-mem enabled='no'/>
+    <suspend-to-disk enabled='no'/>
+  </pm>
+  <devices>
+    <emulator>/usr/libexec/qemu-kvm</emulator>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' discard='unmap'/>
+      <source file='/var/lib/libvirt/images/router.qcow2'/>
+      <target dev='vda' bus='virtio'/>
+      <boot order='1'/>
+    </disk>
+    <controller type='usb' index='0' model='ich9-ehci1'>
+    </controller>
+    <controller type='usb' index='0' model='ich9-uhci1'>
+      <master startport='0'/>
+    </controller>
+    <controller type='usb' index='0' model='ich9-uhci2'>
+      <master startport='2'/>
+    </controller>
+    <controller type='usb' index='0' model='ich9-uhci3'>
+      <master startport='4'/>
+    </controller>
+    <controller type='pci' index='0' model='pci-root'/>
+    <controller type='ide' index='0'>
+    </controller>
+    <controller type='scsi' index='0' model='virtio-scsi'>
+    </controller>
+    <serial type='pty'>
+      <target type='isa-serial' port='0'>
+        <model name='isa-serial'/>
+      </target>
+    </serial>
+    <console type='pty'>
+      <target type='serial' port='0'/>
+    </console>
+    <input type='tablet' bus='usb'>
+      <address type='usb' bus='0' port='1'/>
+    </input>
+    <input type='mouse' bus='ps2'/>
+    <input type='keyboard' bus='ps2'/>
+    <graphics type='vnc' port='-1' autoport='yes' listen='127.0.0.1'>
+      <listen type='address' address='127.0.0.1'/>
+    </graphics>
+    <audio id='1' type='none'/>
+    <video>
+      <model type='vga' vram='16384' heads='1' primary='yes'/>
+    </video>
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+      <source>
+      </source>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+      <source>
+      </source>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+      <source>
+      </source>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+      <source>
+      </source>
+    </hostdev>
+    <memballoon model='virtio'>
+      <stats period='10'/>
+    </memballoon>
+  </devices>
+</domain>
